@@ -12,71 +12,66 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
-  -->
-<RelativeLayout
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_height="wrap_content"
-    >
-<com.example.android.scrolltricks.ObservableScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/scroll_view"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content" >
 
-    <FrameLayout
+    <com.example.android.scrolltricks.ObservableScrollView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/scroll_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent" >
 
-        <LinearLayout android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
 
-           
-            <View android:id="@+id/placeholder"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/sticky_height" />
-            
-            
-            <View style="@style/Item.Bottom" />
-            <View style="@style/Item.Bottom.Alt" />
-            <View style="@style/Item.Bottom" />
-            <View style="@style/Item.Bottom.Alt" />
-            <View style="@style/Item.Bottom" />
-            <View style="@style/Item.Bottom.Alt" />
-            
-         
-        </LinearLayout>
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
 
-        <TextView android:id="@+id/sticky" style="@style/Item.Sticky" 
-            android:text="@string/quick_return_item"/>
-        
-                
-        
+                <View
+                    android:id="@+id/placeholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/sticky_height" />
 
-    </FrameLayout>
+                <View style="@style/Item.Bottom" />
 
-</com.example.android.scrolltricks.ObservableScrollView>
-<TextView
-        android:id="@+id/footer" style="@style/Item.Sticky"
-         android:layout_alignParentBottom="true"
+                <View style="@style/Item.Bottom.Alt" />
+
+                <View style="@style/Item.Bottom" />
+
+                <View style="@style/Item.Bottom.Alt" />
+
+                <View style="@style/Item.Bottom" />
+
+                <View style="@style/Item.Bottom.Alt" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/sticky"
+                style="@style/Item.Sticky"
+                android:text="@string/quick_return_item" />
+        </FrameLayout>
+    </com.example.android.scrolltricks.ObservableScrollView>
+
+    <TextView
+        android:id="@+id/footer"
+        style="@style/Item.Sticky"
+        android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:gravity="center"
-        android:text="@string/quick_return_item"
-         />
-    
-<Button
-    android:id="@+id/goToTop"
-    android:layout_height="wrap_content"
-    android:layout_width="wrap_content"
-    android:background="@android:drawable/ic_menu_upload"
-    android:layout_alignParentTop="true"
-    android:layout_alignParentRight="true"
-    android:visibility="invisible"
-    
-    />
-     
-        
+        android:text="@string/quick_return_item" />
 
+    <Button
+        android:id="@+id/goToTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:background="@android:drawable/ic_menu_upload"
+        android:visibility="invisible" />
 
 </RelativeLayout>

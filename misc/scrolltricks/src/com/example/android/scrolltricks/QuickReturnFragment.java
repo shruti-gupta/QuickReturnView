@@ -22,13 +22,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.View.OnClickListener;
 import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.TextView;
@@ -103,18 +102,15 @@ public class QuickReturnFragment extends Fragment implements
 		boolean scrollDown = (scrollY < oldt);
 
 		if (scrollDown) {
-			Log.d("Check scroll", "Scroll Down");
-			if (isWindowScrolled())
-				mgoToTop.setVisibility(View.VISIBLE);
-			else
-				mgoToTop.setVisibility(View.INVISIBLE);
-		} else if (scrollUp)
-			mgoToTop.setVisibility(View.INVISIBLE);
+			if (isWindowScrolled())	mgoToTop.setVisibility(View.VISIBLE);
+			else	mgoToTop.setVisibility(View.INVISIBLE);
+			}	else if (scrollUp)	mgoToTop.setVisibility(View.INVISIBLE);
+		
 		mScrollSettleHandler.onScroll(scrollY);
 		mScrollY = mObservableScrollView.getScrollY();
+		
 		int rawY = mPlaceholderView.getTop() - scrollY;
 		int rawYFooter = mScrollY;
-
 		int translationY = 0;
 		int translationYFooter = 0;
 
