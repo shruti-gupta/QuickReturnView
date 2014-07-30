@@ -41,15 +41,14 @@ public class MainActivity extends FragmentActivity implements ActionBar.TabListe
                 switch (position) {
                     case 0:
                         return new QuickReturnFragment();
-                    case 1:
-                        return new StickyFragment();
+                    
                 }
                 return null;
             }
 
             @Override
             public int getCount() {
-                return 2;
+                return 1;
             }
 
             @Override
@@ -57,8 +56,7 @@ public class MainActivity extends FragmentActivity implements ActionBar.TabListe
                 switch (position) {
                     case 0:
                         return getString(R.string.quick_return_item);
-                    case 1:
-                        return getString(R.string.sticky_item);
+                    
                 }
                 return null;
             }

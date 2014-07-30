@@ -16,157 +16,278 @@
 
 package com.example.android.scrolltricks;
 
+import android.graphics.Point;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.Fragment;
+import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.View.OnClickListener;
+import android.view.animation.TranslateAnimation;
+import android.widget.Button;
 import android.widget.TextView;
 
-public class QuickReturnFragment extends Fragment implements ObservableScrollView.Callbacks {
-    private static final int STATE_ONSCREEN = 0;
-    private static final int STATE_OFFSCREEN = 1;
-    private static final int STATE_RETURNING = 2;
+public class QuickReturnFragment extends Fragment implements
+		ObservableScrollView.Callbacks {
+	private static final int STATE_ONSCREEN = 0;
+	private static final int STATE_OFFSCREEN = 1;
+	private static final int STATE_RETURNING = 2;
+	private Button mgoToTop;
+	private TextView mQuickReturnView;
+	private TextView mQuickReturnViewFooter;
+	private View mPlaceholderView;
+	private ObservableScrollView mObservableScrollView;
+	private ScrollSettleHandler mScrollSettleHandler = new ScrollSettleHandler();
+	private int mMinRawY = 0;
+	private int mMinRawYFooter = 0;
+	private int mState = STATE_ONSCREEN;
+	private int mStateFooter = STATE_ONSCREEN;
+	private int mQuickReturnHeight;
+	private int mQuickReturnHeightFooter;
+	private int mMaxScrollY;
+	private int mScrollY = 0;
+	private TranslateAnimation anim;
 
-    private TextView mQuickReturnView;
-    private View mPlaceholderView;
-    private ObservableScrollView mObservableScrollView;
-    private ScrollSettleHandler mScrollSettleHandler = new ScrollSettleHandler();
-    private int mMinRawY = 0;
-    private int mState = STATE_ONSCREEN;
-    private int mQuickReturnHeight;
-    private int mMaxScrollY;
+	public QuickReturnFragment() {
+	}
 
-    public QuickReturnFragment() {
-    }
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState) {
+		ViewGroup rootView = (ViewGroup) inflater.inflate(
+				R.layout.fragment_content, container, false);
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        ViewGroup rootView = (ViewGroup) inflater
-                .inflate(R.layout.fragment_content, container, false);
+		mObservableScrollView = (ObservableScrollView) rootView
+				.findViewById(R.id.scroll_view);
+		mObservableScrollView.setCallbacks(this);
+		mgoToTop = (Button) rootView.findViewById(R.id.goToTop);
+		mQuickReturnView = (TextView) rootView.findViewById(R.id.sticky);
+		mQuickReturnViewFooter = (TextView) rootView.findViewById(R.id.footer);
+		mPlaceholderView = rootView.findViewById(R.id.placeholder);
+		mObservableScrollView.getViewTreeObserver().addOnGlobalLayoutListener(
+				new ViewTreeObserver.OnGlobalLayoutListener() {
+					@Override
+					public void onGlobalLayout() {
+						onScrollChanged(0, mObservableScrollView.getScrollY(),
+								0, 0);
+						mMaxScrollY = mObservableScrollView
+								.computeVerticalScrollRange()
+								- mObservableScrollView.getHeight();
+						mQuickReturnHeight = mQuickReturnView.getHeight();
+						mQuickReturnHeightFooter = mQuickReturnViewFooter
+								.getHeight();
+					}
+				});
 
-        mObservableScrollView = (ObservableScrollView) rootView.findViewById(R.id.scroll_view);
-        mObservableScrollView.setCallbacks(this);
+		mgoToTop.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				mObservableScrollView.setScrollY(0);
+			}
+		});
 
-        mQuickReturnView = (TextView) rootView.findViewById(R.id.sticky);
-        mQuickReturnView.setText(R.string.quick_return_item);
-        mPlaceholderView = rootView.findViewById(R.id.placeholder);
+		return rootView;
+	}
 
-        mObservableScrollView.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        onScrollChanged(mObservableScrollView.getScrollY());
-                        mMaxScrollY = mObservableScrollView.computeVerticalScrollRange()
-                                - mObservableScrollView.getHeight();
-                        mQuickReturnHeight = mQuickReturnView.getHeight();
-                    }
-                });
+	@Override
+	public void onScrollChanged(int scrollX, int scrollY, int oldl, int oldt) {
+		scrollY = Math.min(mMaxScrollY, scrollY);
 
-        return rootView;
-    }
+		boolean scrollUp = (scrollY > oldt);
+		boolean scrollDown = (scrollY < oldt);
 
-    @Override
-    public void onScrollChanged(int scrollY) {
-        scrollY = Math.min(mMaxScrollY, scrollY);
+		if (scrollDown) {
+			Log.d("Check scroll", "Scroll Down");
+			if (isWindowScrolled())
+				mgoToTop.setVisibility(View.VISIBLE);
+			else
+				mgoToTop.setVisibility(View.INVISIBLE);
+		} else if (scrollUp)
+			mgoToTop.setVisibility(View.INVISIBLE);
+		mScrollSettleHandler.onScroll(scrollY);
+		mScrollY = mObservableScrollView.getScrollY();
+		int rawY = mPlaceholderView.getTop() - scrollY;
+		int rawYFooter = mScrollY;
 
-        mScrollSettleHandler.onScroll(scrollY);
+		int translationY = 0;
+		int translationYFooter = 0;
 
-        int rawY = mPlaceholderView.getTop() - scrollY;
-        int translationY = 0;
+		switch (mState) {
+		case STATE_OFFSCREEN:
+			if (rawY <= mMinRawY) {
+				mMinRawY = rawY;
+			} else {
+				mState = STATE_RETURNING;
+			}
+			translationY = rawY;
+			break;
 
-        switch (mState) {
-            case STATE_OFFSCREEN:
-                if (rawY <= mMinRawY) {
-                    mMinRawY = rawY;
-                } else {
-                    mState = STATE_RETURNING;
-                }
-                translationY = rawY;
-                break;
+		case STATE_ONSCREEN:
+			if (rawY < -mQuickReturnHeight) {
+				mState = STATE_OFFSCREEN;
+				mMinRawY = rawY;
+			}
+			translationY = rawY;
+			break;
 
-            case STATE_ONSCREEN:
-                if (rawY < -mQuickReturnHeight) {
-                    mState = STATE_OFFSCREEN;
-                    mMinRawY = rawY;
-                }
-                translationY = rawY;
-                break;
+		case STATE_RETURNING:
+			translationY = (rawY - mMinRawY) - mQuickReturnHeight;
+			if (translationY > 0) {
+				translationY = 0;
+				mMinRawY = rawY - mQuickReturnHeight;
+			}
 
-            case STATE_RETURNING:
-                translationY = (rawY - mMinRawY) - mQuickReturnHeight;
-                if (translationY > 0) {
-                    translationY = 0;
-                    mMinRawY = rawY - mQuickReturnHeight;
-                }
+			if (rawY > 0) {
+				mState = STATE_ONSCREEN;
+				translationY = rawY;
+			}
 
-                if (rawY > 0) {
-                    mState = STATE_ONSCREEN;
-                    translationY = rawY;
-                }
+			if (translationY < -mQuickReturnHeight) {
+				mState = STATE_OFFSCREEN;
+				mMinRawY = rawY;
+			}
+			break;
+		}
+		mQuickReturnView.animate().cancel();
+		mQuickReturnView.setTranslationY(translationY + scrollY);
 
-                if (translationY < -mQuickReturnHeight) {
-                    mState = STATE_OFFSCREEN;
-                    mMinRawY = rawY;
-                }
-                break;
-        }
-        mQuickReturnView.animate().cancel();
-        mQuickReturnView.setTranslationY(translationY + scrollY);
-    }
+		switch (mStateFooter) {
+		case STATE_OFFSCREEN:
+			if (rawYFooter >= mMinRawYFooter) {
+				mMinRawYFooter = rawYFooter;
+			} else {
+				mStateFooter = STATE_RETURNING;
+			}
+			translationYFooter = rawYFooter;
+			break;
 
-    @Override
-    public void onDownMotionEvent() {
-        mScrollSettleHandler.setSettleEnabled(false);
-    }
+		case STATE_ONSCREEN:
+			if (rawYFooter > mQuickReturnHeightFooter) {
+				mStateFooter = STATE_OFFSCREEN;
+				mMinRawYFooter = rawYFooter;
+			}
+			translationYFooter = rawYFooter;
+			break;
 
-    @Override
-    public void onUpOrCancelMotionEvent() {
-        mScrollSettleHandler.setSettleEnabled(true);
-        mScrollSettleHandler.onScroll(mObservableScrollView.getScrollY());
-    }
+		case STATE_RETURNING:
+			translationYFooter = (rawYFooter - mMinRawYFooter)
+					+ mQuickReturnHeightFooter;
+			System.out.println(translationYFooter);
+			if (translationYFooter < 0) {
+				translationYFooter = 0;
+				mMinRawYFooter = rawYFooter + mQuickReturnHeightFooter;
+			}
 
-    private class ScrollSettleHandler extends Handler {
-        private static final int SETTLE_DELAY_MILLIS = 100;
+			if (rawYFooter == 0) {
+				mStateFooter = STATE_ONSCREEN;
+				translationYFooter = 0;
+			}
 
-        private int mSettledScrollY = Integer.MIN_VALUE;
-        private boolean mSettleEnabled;
+			if (translationYFooter > mQuickReturnHeightFooter) {
+				mStateFooter = STATE_OFFSCREEN;
+				mMinRawYFooter = rawYFooter;
+			}
+			break;
+		}
 
-        public void onScroll(int scrollY) {
-            if (mSettledScrollY != scrollY) {
-                 // Clear any pending messages and post delayed
-                removeMessages(0);
-                sendEmptyMessageDelayed(0, SETTLE_DELAY_MILLIS);
-                mSettledScrollY = scrollY;
-            }
-        }
+		/** this can be used if the build is below honeycomb **/
+		if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.HONEYCOMB) {
+			anim = new TranslateAnimation(0, 0, translationYFooter,
+					translationYFooter);
+			anim.setFillAfter(true);
+			anim.setDuration(0);
+			mQuickReturnViewFooter.startAnimation(anim);
+		} else {
+			mQuickReturnViewFooter.animate().cancel();
+			mQuickReturnViewFooter.setTranslationY(translationYFooter);
+		}
+	}
 
-        public void setSettleEnabled(boolean settleEnabled) {
-            mSettleEnabled = settleEnabled;
-        }
+	@Override
+	public void onDownMotionEvent() {
+		mScrollSettleHandler.setSettleEnabled(false);
+	}
 
-        @Override
-        public void handleMessage(Message msg) {
-            // Handle the scroll settling.
-            if (STATE_RETURNING == mState && mSettleEnabled) {
-                int mDestTranslationY;
-                if (mSettledScrollY - mQuickReturnView.getTranslationY() > mQuickReturnHeight / 2) {
-                    mState = STATE_OFFSCREEN;
-                    mDestTranslationY = Math.max(
-                            mSettledScrollY - mQuickReturnHeight,
-                            mPlaceholderView.getTop());
-                } else {
-                    mDestTranslationY = mSettledScrollY;
-                }
+	@Override
+	public void onCancelMotionEvent() {
+		mScrollSettleHandler.setSettleEnabled(true);
+		mScrollSettleHandler.onScroll(mObservableScrollView.getScrollY());
+	}
 
-                mMinRawY = mPlaceholderView.getTop() - mQuickReturnHeight - mDestTranslationY;
-                mQuickReturnView.animate().translationY(mDestTranslationY);
-            }
-            mSettledScrollY = Integer.MIN_VALUE; // reset
-        }
-    }
+	@Override
+	public void onUpMotionEvent() {
+		mScrollSettleHandler.setSettleEnabled(true);
+		mScrollSettleHandler.onScroll(mObservableScrollView.getScrollY());
+	}
+
+	private class ScrollSettleHandler extends Handler {
+		private static final int SETTLE_DELAY_MILLIS = 100;
+		private int mSettledScrollY = Integer.MIN_VALUE;
+		private int mSettledScrollYFooter = Integer.MIN_VALUE;
+		private boolean mSettleEnabled;
+
+		public void onScroll(int scrollY) {
+			if (mSettledScrollY != scrollY) {
+				// Clear any pending messages and post delayed
+				removeMessages(0);
+				sendEmptyMessageDelayed(0, SETTLE_DELAY_MILLIS);
+				mSettledScrollY = scrollY;
+				mSettledScrollYFooter = scrollY;
+			}
+
+		}
+
+		public void setSettleEnabled(boolean settleEnabled) {
+			mSettleEnabled = settleEnabled;
+		}
+
+		@Override
+		public void handleMessage(Message msg) {
+			// Handle the scroll settling.
+
+			if (STATE_RETURNING == mState && mSettleEnabled) {
+				int mDestTranslationY;
+				int mDestTranslationYFooter = 0;
+
+				if (mSettledScrollY - mQuickReturnView.getTranslationY() > mQuickReturnHeight / 2) {
+					mState = STATE_OFFSCREEN;
+					mStateFooter = STATE_OFFSCREEN;
+					mDestTranslationY = Math.max(mSettledScrollY
+							- mQuickReturnHeight, mPlaceholderView.getTop());
+					mDestTranslationYFooter = mSettledScrollYFooter
+							- mQuickReturnHeightFooter;
+				} else {
+					mDestTranslationY = mSettledScrollY;
+				}
+
+				mMinRawY = mPlaceholderView.getTop() - mQuickReturnHeight
+						- mDestTranslationY;
+				mQuickReturnView.animate().translationY(mDestTranslationY);
+				mQuickReturnViewFooter.animate().translationY(
+						mDestTranslationYFooter);
+			}
+			mSettledScrollY = Integer.MIN_VALUE; // reset
+
+		}
+	}
+
+	public boolean isWindowScrolled() {
+		Display display = getActivity().getWindowManager().getDefaultDisplay();
+		Point size = new Point();
+		display.getSize(size);
+		int height = size.y;
+		int[] location = {0,0};
+		mObservableScrollView.getChildAt(0).getLocationOnScreen(location);
+		int scrolled = mObservableScrollView.getTop() - location[1];
+		if (scrolled >= height)
+			return true;
+		return false;
+
+	}
 }

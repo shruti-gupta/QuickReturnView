@@ -35,7 +35,7 @@ public class ObservableScrollView extends ScrollView {
     protected void onScrollChanged(int l, int t, int oldl, int oldt) {
         super.onScrollChanged(l, t, oldl, oldt);
         if (mCallbacks != null) {
-            mCallbacks.onScrollChanged(t);
+            mCallbacks.onScrollChanged(l, t, oldl, oldt);
         }
     }
 
@@ -47,8 +47,10 @@ public class ObservableScrollView extends ScrollView {
                     mCallbacks.onDownMotionEvent();
                     break;
                 case MotionEvent.ACTION_UP:
+                	mCallbacks.onUpMotionEvent();
+                    break;
                 case MotionEvent.ACTION_CANCEL:
-                    mCallbacks.onUpOrCancelMotionEvent();
+                    mCallbacks.onCancelMotionEvent();
                     break;
             }
         }
@@ -65,8 +67,9 @@ public class ObservableScrollView extends ScrollView {
     }
 
     public static interface Callbacks {
-        public void onScrollChanged(int scrollY);
+        public void onScrollChanged(int scrollX, int scrollY, int oldl, int oldt);
         public void onDownMotionEvent();
-        public void onUpOrCancelMotionEvent();
+        public void onUpMotionEvent();
+        public void onCancelMotionEvent();
     }
 }
